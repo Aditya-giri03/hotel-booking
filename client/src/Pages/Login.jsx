@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -8,18 +9,20 @@ const Login = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(
-        'https://lspgvjxl-3000.inc1.devtunnels.ms/api/login',
-        { email, password }
-      );
+      const response = await axios.post(`http://100.64.238.95:8080/api/login`, {
+        email,
+        password,
+      });
       setSuccess('Login successful');
       setError('');
       console.log(response.data);
-      navigate('/booking', {
+      login(response.data.name, response.data.email);
+      navigate('/listBookings', {
         state: { name: response.data.name, email: response.data.email },
       });
     } catch (err) {

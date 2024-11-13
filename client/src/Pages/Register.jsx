@@ -6,7 +6,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const [age, setAge] = useState('');
+  const [age, setAge] = useState();
   const [gender, setGender] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -16,17 +16,17 @@ const Register = () => {
     try {
       console.log(email, password);
       const response = await axios.post(
-        'https://lspgvjxl-3000.inc1.devtunnels.ms/api/register',
+        `http://100.64.238.95:8080/api/register`,
         {
           email,
           password,
           name,
-          age,
+          age: Number(age),
           gender,
         }
       );
-      if (response.data === 'Signup successful') {
-        // NOT A GOOD WAY TO CHECK -> TOFIX
+      console.log(response);
+      if (response.status === 200) {
         navigate('/login');
       } else {
         setError('Registration failed');

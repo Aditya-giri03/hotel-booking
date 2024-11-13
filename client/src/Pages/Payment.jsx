@@ -5,17 +5,12 @@ function PaymentPage() {
   const location = useLocation();
   const { name, email, roomType, checkInDate, checkOutDate, price } =
     location.state || {};
-  console.log(
-    'PAYMENT:',
-    name,
-    email,
-    roomType,
-    checkInDate,
-    checkOutDate,
-    price
-  );
   const [cardNo, setCardNo] = useState('');
   const [cvv, setCvv] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
+  const [transactionId, setTransactionId] = useState('');
+  const [bookingId, setBookingId] = useState('');
+  const [roomNo, setRoomNo] = useState('');
   const navigate = useNavigate();
 
   const handlePayment = async () => {
@@ -24,22 +19,17 @@ function PaymentPage() {
       return;
     }
 
-    // Payment request payload
     const paymentData = {
       name,
       email,
       card_no: cardNo,
       cvv,
       price,
-      // roomType,
-      // checkInDate,
-      // checkOutDate,
     };
 
     try {
-      // First POST request to process the payment
       const paymentResponse = await fetch(
-        'http://localhost:3000/api/payment/makePayment',
+        `http://100.64.238.95:8080/api/payment/makePayment`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -53,9 +43,7 @@ function PaymentPage() {
       const paymentResult = await paymentResponse.json();
       const transactionId = paymentResult.transaction_id;
 
-      console.log('Payment successful. Transaction ID:', transactionId);
       const RoomMap = { single: 1, couple: 2 };
-      // Second POST request to confirm booking
       const bookingData = {
         customer_name: name,
         customer_email: email,
@@ -64,10 +52,9 @@ function PaymentPage() {
         check_in_date: checkInDate,
         check_out_date: checkOutDate,
       };
-      console.log(bookingData);
 
       const bookingResponse = await fetch(
-        'http://100.64.238.95:8080/api/book/createBooking',
+        `http://100.64.238.95:8080/api/book/createBooking`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -75,46 +62,109 @@ function PaymentPage() {
         }
       );
 
+      if (bookingResponse.status === 500) {
+        const bookingResult = await bookingResponse.json();
+        const msg = bookingResult.msg;
+        throw new Error(msg);
+      }
+
       if (!bookingResponse.ok)
         throw new Error('Booking confirmation failed. Please try again.');
 
       const bookingResult = await bookingResponse.json();
+
       const { booking_id, room_no } = bookingResult;
 
-      alert(
-        `Booking successful! Booking ID: ${booking_id}, Room Number: ${room_no}`
-      );
-
-      // Redirect to ListBookings page on success
-      navigate('/listBookings', { state: { email } });
+      // Set popup data and show popup
+      setTransactionId(transactionId);
+      setBookingId(booking_id);
+      setRoomNo(room_no);
+      setShowPopup(true);
     } catch (error) {
       alert(error.message);
+      navigate('/booking');
     }
   };
 
+  const handlePopupClose = () => {
+    setShowPopup(false);
+    navigate('/listBookings', { state: { email } });
+  };
+
   return (
-    <div className="payment-page">
-      <h2>Payment Page</h2>
-      <p>Amount to Pay: ${price}</p>
-      <div>
-        <label>Card Number:</label>
-        <input
-          type="text"
-          value={cardNo}
-          onChange={(e) => setCardNo(e.target.value)}
-          placeholder="Enter card number"
-        />
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center py-8">
+      <div className="absolute top-4 left-4">
+        <button
+          onClick={() => navigate('/listBookings')}
+          className="py-2 px-4 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition duration-200"
+        >
+          Back to Home
+        </button>
       </div>
-      <div>
-        <label>CVV:</label>
-        <input
-          type="password"
-          value={cvv}
-          onChange={(e) => setCvv(e.target.value)}
-          placeholder="Enter CVV"
-        />
+      <div className="bg-white shadow-md rounded-lg p-8 w-full max-w-md">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-4 text-center">
+          Complete Your Payment
+        </h2>
+
+        <p className="text-gray-600 mb-6 text-center">
+          Amount to Pay:{' '}
+          <span className="font-bold text-gray-800">${price}</span>
+        </p>
+
+        <div className="mb-4">
+          <label className="block text-gray-700 font-medium">Card Number</label>
+          <input
+            type="text"
+            value={cardNo}
+            onChange={(e) => setCardNo(e.target.value)}
+            placeholder="Enter card number"
+            className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-200"
+          />
+        </div>
+
+        <div className="mb-6">
+          <label className="block text-gray-700 font-medium">CVV</label>
+          <input
+            type="password"
+            value={cvv}
+            onChange={(e) => setCvv(e.target.value)}
+            placeholder="Enter CVV"
+            className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-200"
+          />
+        </div>
+
+        <button
+          onClick={handlePayment}
+          className="w-full py-3 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition duration-200"
+        >
+          Pay Now
+        </button>
       </div>
-      <button onClick={handlePayment}>Pay</button>
+
+      {showPopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 z-10">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-80">
+            <h3 className="text-xl font-semibold text-center text-gray-800 mb-4">
+              Payment Successful!
+            </h3>
+            <p className="text-gray-700 mb-2">
+              <strong>Transaction ID:</strong> {transactionId}
+            </p>
+            <p className="text-gray-700 mb-2">
+              <strong>Booking ID:</strong> {bookingId}
+            </p>
+            <p className="text-gray-700 mb-4">
+              <strong>Room Number:</strong> {roomNo}
+            </p>
+            <button
+              onClick={handlePopupClose}
+              className="w-full py-2 mt-4 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition duration-200"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
