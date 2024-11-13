@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package payment;
+
+service PaymentService {
+    rpc CreatePayment (CreatePaymentRequest) returns (CreatePaymentResponse);
+    rpc GetPayment (GetPaymentRequest) returns (GetPaymentResponse);
+    rpc ListPayments (Empty) returns (PaymentList);
+    rpc DeletePayment (PaymentId) returns (Empty);
+}
+
+message CreatePaymentRequest {
+    string user_id = 1;
+    double amount = 2;
+    string currency = 3;
+    string method = 4;
+}
+
+message CreatePaymentResponse {
+    string payment_id = 1;
+    string message = 2;
+}
+
+message GetPaymentRequest {
+    string payment_id = 1;
+}
+
+message GetPaymentResponse {
+    string payment_id = 1;
+    string user_id = 2;
+    double amount = 3;
+    string currency = 4;
+    string method = 5;
+    string status = 6;
+}
+
+message PaymentId {
+    string payment_id = 1;
+}
+
+message PaymentList {
+    repeated GetPaymentResponse payments = 1;
+}
+
+message Empty {}
